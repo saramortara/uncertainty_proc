@@ -1,0 +1,185 @@
+---
+title: "Understanding sources of uncertainty in Ecological Niche Models"
+author: "Sara Mortara"
+date: "`r format(Sys.time(), '%d %B, %Y')`"
+output: 
+  html_document:
+    toc: true
+    theme: cosmo
+    number_sections: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE)
+```
+
+```{r pkg}
+library(ggplot2)
+library(dplyr)
+library(data.table)
+library(stringr)
+library(wesanderson)
+library(knitr)
+library(raster)
+library(rasterVis)
+library(sp)
+## for model selection
+library(lme4)
+library(bbmle)
+library(MuMIn)
+```
+
+
+
+```{r prep}
+# species data
+sp.trat <- list.files("results/uncertainty")
+sp.df <- read.csv("data/epiphyte_species.csv", as.is = TRUE)
+fam <- sort(table(sp.df$family), decreasing = TRUE)
+fam.n <- as.numeric(fam)
+# color palette
+n.col <- 4
+cores <-  wes_palette("Zissou1", n.col,
+                      type = "continuous")
+# algorithms
+nome.algo <- c("Bioclim", "GLM", "Maxent", "Random Forest", "SVM")
+
+# final stats
+stats_rm <- read.csv("results/final_tables/stats_row_mean.csv")
+stats_rmc <- read.csv("results/final_tables/stats_row_mean_cut.csv")
+stats_rm$size <- as.factor(stats_rm$size)
+stats_rmc$size <- as.factor(stats_rmc$size)
+```
+
+
+# Goal
+
+Our main goal is to quantify uncertainty in ecological niche models (ENMs). First, we will explore uncertainty in ecological niche models of epiphyte species from the Atlantic Forest using different algorithms and experimental scenarios (sample size, spatial autocorrelation and dimensionality). 
+
+# Methods
+
+## Biotic variables
+
+We are using occurrence data from epiphyte species from the Atlantic Forest published in the database by Ramos et al. (2019) *Ecology*. We selected only Angiosperm epiphytes endemic to the Atlantic Forest (according to Brazilian Flora 2020 -- the official Brazilian plant list). We are using occurrence data from 33 species belonging to Bromeliaceae (N=`r fam.n[1]`), Orchidaceae (N=`r fam.n[2]`), Cactaceae (N=`r fam.n[3]`), Gesneriaceae (N=`r fam.n[4]`) Melastomataceae (N=`r fam.n[5]`) and Piperaceae (N=`r fam.n[6]`) families. 
+
+```{r tab.sp}
+sp.df$sp <- gsub("_", " ", sp.df$sp)
+sp.df$sp <- paste0("*", sp.df$sp, "*")
+kable(sp.df,
+      col.names = c("Family", "Species"),
+      caption = "Table 1. List of species included in this report.")
+```
+
+
+## Abiotic variables
+
+We are using environmental variables from World Clim at 2.5 ° for South America. We selected all variables except: Mean Temperature of Wettest Quarter (BIO08), Mean Temperature of Driest Quarter (BIO09), Precipitation of Warmest Quarter (BIO18), Precipitation of Coldest Quarter (BIO19). We performed a PCA with all environmental variables to build two environmental scenarios: low and high dimensionality. Low dimensionality scenario is represented by the first four PCA axes (> 90% of variance), whereas the high dimensionality scenario is represented by the eight fisrt axes (> 98% of variance).
+
+## Experimental design
+
+From 33 species we generated different experimental scenarios with different sample sizes (10, 20, 50 and 100% of all occurrence data points) and different patterns of spatial aggregation (clump and no clump). For each treatment N=`r length(sp.trat)`  we modeled ecological niche using the following algorithms: `r nome.algo`. So far, we only run models for the low dimensionality scenario. We separed data into four partitions and generated 1,000 pseudo absences around a buffer based on mean distance from points, cutting with a minimum distance for the exclusion buffer. 
+
+# Results
+
+Legends
+
+- Clumping:
+  - C = clump
+  - N = no clump
+
+- Sample size:
+  - 010 = 10% sample size
+  - 020 = 20% sample size
+  - 050 = 50% sample size
+  - 100 = 100% sample size
+
+- Uncertainty metrics
+  - M1 = N of good points/N total
+  - M2 = N of good points/N bad points
+  - M3 = N of good points/(N bad points + N of good points) 
+  
+
+## Understanding model metrics
+
+### AUC values for each treatment
+
+```{r auc}
+ggplot(stats_rm, aes(x = algorithm, y = AUC, fill = size)) +
+  geom_boxplot() +
+  facet_grid(clump ~ .) +
+  scale_fill_manual(values = cores) +
+  theme_classic()
+```
+
+
+### TSS values for each treatment
+
+```{r tss}
+ggplot(stats_rm, aes(x = algorithm, y = TSS, fill = size)) +
+  geom_boxplot() +
+  facet_grid(clump ~ .) +
+  scale_fill_manual(values = cores) +
+  theme_classic()
+```
+
+### pROC values for each treatment
+
+All pROC values are significant. We should check this. 
+
+```{r proc}
+ggplot(stats_rm, aes(x = algorithm, y = pROC, fill = size)) +
+  geom_boxplot() +
+  facet_grid(clump ~ .) +
+  scale_fill_manual(values = cores) +
+  theme_classic()
+```
+
+
+## Omission values for each treatment
+
+```{r omission}
+ggplot(stats_rm, aes(x = algorithm, y = omission, fill = size)) +
+  geom_boxplot() +
+  facet_grid(clump ~ .) +
+  scale_fill_manual(values = cores) +
+  theme_classic()
+```
+
+## Understanding overall uncertainty
+
+### M1 = good/total
+
+```{r m1}
+ggplot(stats_rm, aes(x = algorithm, y = M1, fill = size)) +
+  geom_boxplot() +
+  facet_grid(clump ~ .) +
+  scale_fill_manual(values = cores) +
+  theme_classic()
+```
+
+### M2 = good/bad
+
+```{r m2}
+ggplot(stats_rm, aes(x = algorithm, y = M2, fill = size)) +
+  geom_boxplot() +
+  labs(y = "M2 (log)") +
+  facet_grid(clump ~ .) +
+  scale_fill_manual(values = cores) +
+  scale_y_log10() +
+  theme_classic()
+```
+
+### M3 = good/(good + bad)
+
+```{r m3}
+ggplot(stats_rm, aes(x = algorithm, y = M3, fill = size)) +
+  geom_boxplot() +
+  facet_grid(clump ~ .) +
+  scale_fill_manual(values = cores) +
+  theme_classic()
+```
+
+## Correlation among all metrics
+
+
+
