@@ -1,0 +1,17 @@
+.Rproj.user
+.Rhistory
+.RData
+.Ruserdata
+*.html
+
+# dirs in data/
+data/log/
+data/pca_env/
+data/MA/
+
+# all uncertainty tables
+results/uncertainty/
+
+# models dir
+models_low/
+
