@@ -23,10 +23,14 @@ library(knitr)
 library(raster)
 library(rasterVis)
 library(sp)
+library(ggcorrplot)
 ## for model selection
 library(lme4)
 library(bbmle)
 library(MuMIn)
+# functions
+source("R/sun_plot.R")
+source("R/read_sun.R")
 ```
 
 
@@ -63,6 +67,7 @@ Our main goal is to quantify uncertainty in ecological niche models (ENMs). Firs
 We are using occurrence data from epiphyte species from the Atlantic Forest published in the database by Ramos et al. (2019) *Ecology*. We selected only Angiosperm epiphytes endemic to the Atlantic Forest (according to Brazilian Flora 2020 -- the official Brazilian plant list). We are using occurrence data from 33 species belonging to Bromeliaceae (N=`r fam.n[1]`), Orchidaceae (N=`r fam.n[2]`), Cactaceae (N=`r fam.n[3]`), Gesneriaceae (N=`r fam.n[4]`) Melastomataceae (N=`r fam.n[5]`) and Piperaceae (N=`r fam.n[6]`) families. 
 
 ```{r tab.sp}
+sp.list <- sp.df$sp
 sp.df$sp <- gsub("_", " ", sp.df$sp)
 sp.df$sp <- paste0("*", sp.df$sp, "*")
 kable(sp.df,
@@ -78,6 +83,10 @@ We are using environmental variables from World Clim at 2.5 ° for South America
 ## Experimental design
 
 From 33 species we generated different experimental scenarios with different sample sizes (10, 20, 50 and 100% of all occurrence data points) and different patterns of spatial aggregation (clump and no clump). For each treatment N=`r length(sp.trat)`  we modeled ecological niche using the following algorithms: `r nome.algo`. So far, we only run models for the low dimensionality scenario. We separed data into four partitions and generated 1,000 pseudo absences around a buffer based on mean distance from points, cutting with a minimum distance for the exclusion buffer. 
+
+## Statistical analysis
+
+In order to understand how the proposed metrics reflect model uncertainty, we fitted a generalized linear mixed model (GLMM) with a binomial response error to model the variation in uncertainty metrics (M1 and M2). We included clumping, sample size and algorithm as fixed effects and species as a random effect. We selected the best model by using using model and Akaike Information Criterion (AIC) to make statistical inference.In addition, we used partial R^${2}$ (sensu Nakagawa) to quantify relative contribution of fixed and random effects. 
 
 # Results
 
@@ -135,7 +144,7 @@ ggplot(stats_rm, aes(x = algorithm, y = pROC, fill = size)) +
 ```
 
 
-## Omission values for each treatment
+### Omission values for each treatment
 
 ```{r omission}
 ggplot(stats_rm, aes(x = algorithm, y = omission, fill = size)) +
@@ -181,5 +190,137 @@ ggplot(stats_rm, aes(x = algorithm, y = M3, fill = size)) +
 
 ## Correlation among all metrics
 
+```{r cor}
+metrics <- stats_rm[,c('AUC', 'TSS', 'pROC', 'M1', 'M3', 'omission')]
+correlation <- cor(metrics, use = 'complete.obs')
+
+ggcorrplot(correlation, 
+           hc.order = TRUE, 
+           type = "lower",
+           lab = TRUE)
+  
+```
+
+## Variance partitioning of uncertainty metrics with GLMMs
+
+```{r mod.M1}
+stats_rm$sp.gen <- paste(stats_rm$genus, stats_rm$epithet, sep = "_")
+# f <- M1 ~ clump*size*algorithm + (1|sp.gen)
+# m <- buildmer(f,data=stats_rm,direction='order',control=lmerControl(optimizer='bobyqa'))
+
+m01 <- lmer(M1 ~ clump + size + algorithm + (1|sp.gen), 
+             data = stats_rm, family = "binomial")
+m02 <- lmer(M1 ~ clump + size + (1|sp.gen),
+             data = stats_rm, family = "binomial")
+m03 <- lmer(M1 ~ clump + algorithm + (1|sp.gen), 
+             data = stats_rm, family = "binomial")
+m04 <- lmer(M1 ~ size + algorithm + (1|sp.gen), 
+             data = stats_rm, family = "binomial")
+m05 <- lmer(M1 ~ size + (1|sp.gen), 
+             data = stats_rm, family = "binomial")
+m06 <- lmer(M1 ~ algorithm + (1|sp.gen), 
+             data = stats_rm, family = "binomial")
+m07 <- lmer(M1 ~ clump + (1|sp.gen), 
+             data = stats_rm, family = "binomial")
+m00 <- lmer(M1 ~ 1 + (1|sp.gen), 
+             data = stats_rm, family = "binomial") 
+AICtab(m01, m02, m03, m04, m05, m06, m07, m00, 
+       base = TRUE, weights = TRUE)
+
+
+```
+
+
+
+```{r mod.M3}
+m01b <- lmer(M3 ~ clump + size + algorithm + (1|sp.gen), 
+             data = stats_rm, family = "binomial")
+m02b <- lmer(M3 ~ clump + size + (1|sp.gen), 
+             data = stats_rm, family = "binomial")
+m03b <- lmer(M3 ~ clump + algorithm + (1|sp.gen), 
+             data = stats_rm, family = "binomial")
+m04b <- lmer(M3 ~ size + algorithm + (1|sp.gen),
+             data = stats_rm, family = "binomial")
+m05b <- lmer(M3 ~ size + (1|sp.gen), 
+             data = stats_rm, family = "binomial")
+m06b <- lmer(M3 ~ algorithm + (1|sp.gen), 
+             data = stats_rm, family = "binomial")
+m07b <- lmer(M3 ~ clump + (1|sp.gen), 
+             data = stats_rm, family = "binomial")
+m00b <- lmer(M3 ~ 1 + (1|sp.gen), 
+             data = stats_rm, family = "binomial") 
+AICtab(m01b, m02b, m03b, m04b, m05b, m06b, m07b, m00b, 
+       base = TRUE, weights = TRUE)
+```
+
+## Suitability vs. uncertainty plots
+
+### Looking at C 100 species
+
+#### Bioclim C_100
+
+```{r bio100, fig.width=3, fig.height=2.5}
+bio_100 <- read_sun(algo = "bioclim", 
+                    cod = "C_100", 
+                    type = "raw_mean")
+
+for (i in 1:length(bio_100)) {
+sun_plot(bio_100[[i]], 
+         title = paste(sp.list))
+}
+```
+
+
+#### GLM C_100
+
+```{r glm100, fig.width=3, fig.height=2.5}
+glm_100 <- read_sun(algo = "glm", 
+                    cod = "C_100", 
+                    type = "raw_mean")
+
+for (i in 1:length(glm_100)) {
+sun_plot(glm_100[[i]], 
+         title = paste(sp.list))
+}
+```
+
+#### Maxent C_100
+
+```{r max100, fig.width=3, fig.height=2.5}
+max_100 <- read_sun(algo = "maxent", 
+                    cod = "C_100", 
+                    type = "raw_mean")
+
+for (i in 1:length(max_100)) {
+sun_plot(max_100[[i]], 
+         title = paste(sp.list))
+}
+```
+
+#### Random Forest C_100
+
+```{r rf100, fig.width=3, fig.height=2.5}
+rf_100 <- read_sun(algo = "rf", 
+                    cod = "C_100", 
+                    type = "raw_mean")
+
+for (i in 1:length(rf_100)) {
+sun_plot(rf_100[[i]], 
+         title = paste(sp.list))
+}
+```
+
+#### Support Vector Maxines C_100
+
+```{r svm100, fig.width=3, fig.height=2.5}
+svm_100 <- read_sun(algo = "svmk", 
+                    cod = "C_100", 
+                    type = "raw_mean")
+
+for (i in 1:length(svm_100)) {
+sun_plot(svm_100[[i]], 
+         title = paste(sp.list))
+}
+```
 
 

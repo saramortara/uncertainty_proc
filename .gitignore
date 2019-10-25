@@ -2,7 +2,10 @@
 .Rhistory
 .RData
 .Ruserdata
+
+# Rmd related
 *.html
+understanding_uncertainty_files/
 
 # dirs in data/
 data/log/

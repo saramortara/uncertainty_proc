@@ -1,11 +1,11 @@
 ### function to make sun plot
-sun_plot <- function(df, title){
+sun_plot <- function(data, title){
   # new.lista <- lapply(lista, function(x){
   #   names(x) = c("suit", 'un')
   #   return(x)})
   # df <- reshape2::melt(new.lista, id=1:2)
-  suit <- df[,1]
-  un <-  df[,2]
+  suit <- data[,1]
+  un <-  data[,2]
   quant <- function(x, n) quantile(x, na.rm = TRUE)[n]
   # q.suit25 <-aggregate(df$suit, list(L1=df$L1), quant, 2)
   # q.suit75 <- aggregate(df$suit, list(L1=df$L1), quant, 4)
@@ -17,6 +17,7 @@ sun_plot <- function(df, title){
   q.un75 <- quant(un, 4)
   ## defining good and bad values
   df <- data.frame(suit = suit, un = un)
+  names(df)[1:2] <- c("suit", "un")
   df$quality <- factor("none", levels = c("good", "bad", "none"))
   # good: high suit & low uncertainty
   df$quality[suit >= q.suit75 & un <= q.un25] <- "good"
@@ -26,11 +27,12 @@ sun_plot <- function(df, title){
   df$quality[suit <= q.suit25 & un >= q.un75] <- "bad"
   # bad: high suit & high uncertainty
   df$quality[suit >= q.suit75 & un >= q.un75] <- "bad"
-  p <- ggplot(df, aes(x = suit, y = un, colour = quality)) +
+  df$quality <- as.factor(df$quality)
+  p <- ggplot(df, aes(x = suit, y = un, color = quality)) +
+    scale_color_manual(values = c("#F21A00","#3B9AB2",  "grey")) +
     labs(x = "Suitability", y = "Uncertainty", title = title) +
     geom_point(alpha = 0.3) +
     theme(plot.title = element_text(size = rel(0.5))) +
-    scale_colour_manual(values = c("#F21A00","#3B9AB2",  "grey")) +
     geom_vline(xintercept = q.suit25, linetype = "dotted") +
     geom_vline(xintercept = q.suit75, linetype = "dotted") +
     geom_hline(yintercept = q.un25, linetype = "dotted") +
