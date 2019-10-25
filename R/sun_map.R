@@ -1,6 +1,15 @@
 sun_map <- function(algo, dir, sp, occ){
-  sun.files <- list.files(path = paste0(dir, "/", sp, "/present/partitions/final"),
-                          pattern = paste0(algo, ".*.tif"), full.names = TRUE)
+  # mod files
+  mod_dir <- paste0(dir, "/", sp, "/present/final_models")
+  s.file <- list.files(path = mod_dir,
+                       pattern = paste0(algos, ".*.", type, ".tif"),
+                       full.names = TRUE,
+                       recursive = FALSE)
+  un.file <- list.files(path = mod_dir,
+                        pattern = paste0(algos, ".*uncertainty.tif"),
+                        full.names = TRUE,
+                        recursive = FALSE)
+  sun.files <- c(s.file, un.file)
   sun.mod <- raster::stack(sun.files)
   nomes <- c("suitability", "uncertainty")
   tits <- paste(algo, sp, nomes, sep = " ")

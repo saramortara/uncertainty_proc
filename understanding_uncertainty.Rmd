@@ -53,6 +53,21 @@ stats_rm <- read.csv("results/final_tables/stats_row_mean.csv")
 stats_rmc <- read.csv("results/final_tables/stats_row_mean_cut.csv")
 stats_rm$size <- as.factor(stats_rm$size)
 stats_rmc$size <- as.factor(stats_rmc$size)
+
+# occs
+# species names
+spp_names <- list.files("./data/epiphyte_occ/")
+# listing .csv files
+occ_files <- list()
+for (i in 1:length(spp_names)) {
+  occ_files[[i]] <- list.files(path = paste0("./data/epiphyte_occ/", spp_names[i]),
+                               pattern = '.*0.csv',
+                               full.names = TRUE)
+}
+# reading csv files
+occ_data <- lapply(unlist(occ_files),
+                   fread, sep = ',')
+
 ```
 
 
@@ -323,4 +338,16 @@ sun_plot(svm_100[[i]],
 }
 ```
 
+
+```{r map1}
+algo <- "bioclim"
+dir <- "models_low"
+sp <- sp.trat[1]
+occ <- occ_data[[1]]
+
+sun_map(algo = algo, 
+        dir = dir, 
+        sp = sp,
+        occ = occ)
+```
 
