@@ -10,7 +10,10 @@ output:
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE)
+knitr::opts_chunk$set(echo = FALSE, 
+                      message = FALSE, 
+                      warning = FALSE, 
+                      cache = TRUE)
 ```
 
 ```{r pkg}
@@ -29,6 +32,7 @@ library(lme4)
 library(bbmle)
 library(MuMIn)
 # functions
+source("R/sun_map.R")
 source("R/sun_plot.R")
 source("R/read_sun.R")
 ```
@@ -67,7 +71,6 @@ for (i in 1:length(spp_names)) {
 # reading csv files
 occ_data <- lapply(unlist(occ_files),
                    fread, sep = ',')
-
 ```
 
 
@@ -79,13 +82,14 @@ Our main goal is to quantify uncertainty in ecological niche models (ENMs). Firs
 
 ## Biotic variables
 
-We are using occurrence data from epiphyte species from the Atlantic Forest published in the database by Ramos et al. (2019) *Ecology*. We selected only Angiosperm epiphytes endemic to the Atlantic Forest (according to Brazilian Flora 2020 -- the official Brazilian plant list). We are using occurrence data from 33 species belonging to Bromeliaceae (N=`r fam.n[1]`), Orchidaceae (N=`r fam.n[2]`), Cactaceae (N=`r fam.n[3]`), Gesneriaceae (N=`r fam.n[4]`) Melastomataceae (N=`r fam.n[5]`) and Piperaceae (N=`r fam.n[6]`) families. 
+We are using occurrence data from epiphyte species from the Atlantic Forest published in the database by Ramos et al. (2019) *Ecology*. We selected only Angiosperm epiphytes endemic to the Atlantic Forest (according to Brazilian Flora 2020 -- the official Brazilian plant list). We are using occurrence data from 33 species belonging to Bromeliaceae (N=`r fam.n[1]`), Orchidaceae (N=`r fam.n[2]`), Cactaceae (N=`r fam.n[3]`), Gesneriaceae (N=`r fam.n[4]`) Melastomataceae (N=`r fam.n[5]`) and Piperaceae (N=`r fam.n[6]`) families (Table 1). 
 
 ```{r tab.sp}
+### adicionar o N na tabela
 sp.list <- sp.df$sp
 sp.df$sp <- gsub("_", " ", sp.df$sp)
 sp.df$sp <- paste0("*", sp.df$sp, "*")
-kable(sp.df,
+kable(sp.df[-27,],
       col.names = c("Family", "Species"),
       caption = "Table 1. List of species included in this report.")
 ```
@@ -93,15 +97,50 @@ kable(sp.df,
 
 ## Abiotic variables
 
-We are using environmental variables from World Clim at 2.5 ° for South America. We selected all variables except: Mean Temperature of Wettest Quarter (BIO08), Mean Temperature of Driest Quarter (BIO09), Precipitation of Warmest Quarter (BIO18), Precipitation of Coldest Quarter (BIO19). We performed a PCA with all environmental variables to build two environmental scenarios: low and high dimensionality. Low dimensionality scenario is represented by the first four PCA axes (> 90% of variance), whereas the high dimensionality scenario is represented by the eight fisrt axes (> 98% of variance).
+We are using environmental variables from World Clim at 2.5$^{\circ}$ for South America. We selected all variables except: Mean Temperature of Wettest Quarter (BIO08), Mean Temperature of Driest Quarter (BIO09), Precipitation of Warmest Quarter (BIO18), Precipitation of Coldest Quarter (BIO19). We performed a PCA with all environmental variables to build two environmental scenarios: low and high dimensionality. Low dimensionality scenario is represented by the first four PCA axes (> 90% of variance), whereas the high dimensionality scenario is represented by the eight fisrt axes (> 98% of variance).
 
 ## Experimental design
 
-From 33 species we generated different experimental scenarios with different sample sizes (10, 20, 50 and 100% of all occurrence data points) and different patterns of spatial aggregation (clump and no clump). For each treatment N=`r length(sp.trat)`  we modeled ecological niche using the following algorithms: `r nome.algo`. So far, we only run models for the low dimensionality scenario. We separed data into four partitions and generated 1,000 pseudo absences around a buffer based on mean distance from points, cutting with a minimum distance for the exclusion buffer. 
+From 33 species we generated different experimental scenarios with different sample sizes (10, 20, 50 and 100% of all occurrence data points) and different patterns of spatial aggregation (clump and no clump). We used the `DistanceFilter` function from ENMGadgets R package to exclude spatial aggregated data at 0.11785113 (= 2 x pixel width). For each treatment N=`r length(sp.trat)`  we modeled ecological niche using the following algorithms: `r nome.algo`. So far, we only run models for the low dimensionality scenario. We separed data into four partitions and generated 1,000 pseudo absences around a buffer based on mean distance from points, cutting with a minimum distance for the exclusion buffer. 
+
+## Uncertainty metrics
+We defined two metrics to quantify uncertainty based on the suitability vs. uncertainty relationship. We classified the quality of suitability values based on the amount of uncertainty they held. Good quality suitability values were low suitability values (< first quantile) and high suitability values (> third quantile) with low uncertainty (< first quantile). Bad quality suitability values were low and high suitability values with high uncertainty. Points in between the first and third quantites were not considered in the metrics. Our uncertainty metrics were therefore calculated based on the proportion of good quality suitability values from total (M1), from bad points (M2) and from the classified points (M3). Given that M1 and M3 fitted to a binomial distribution, they were adopted for in the regression analysis. 
+
+${M1 = \frac{N_{good~points}}{N_{total}}}$
+${M2 = \frac{N_{good~points}}{N_{bad~points}}}$
+${M3 = \frac{N_{good~points}}{N_{good~points + bad~points}}}$
+
+```{r m.example}
+set.seed(42)
+sun_plot(data = data.frame(a = rnorm(1000, mean = 0.5, sd = 0.15), 
+                          b = rnorm(1000, mean = 0.5, sd = 0.15)), 
+         title = "")
+
+```
+
+
+Figure 1. Classification of suitability values based on its relation with uncertainty values. 
 
 ## Statistical analysis
 
-In order to understand how the proposed metrics reflect model uncertainty, we fitted a generalized linear mixed model (GLMM) with a binomial response error to model the variation in uncertainty metrics (M1 and M2). We included clumping, sample size and algorithm as fixed effects and species as a random effect. We selected the best model by using using model and Akaike Information Criterion (AIC) to make statistical inference.In addition, we used partial R^${2}$ (sensu Nakagawa) to quantify relative contribution of fixed and random effects. 
+In order to understand how the proposed metrics reflect model uncertainty, we fitted a generalized linear mixed model (GLMM) with a binomial response error to model the variation in uncertainty metrics (M1 and M3). We included clumping, sample size and algorithm as fixed effects and species as a random effect. We build models wuth all additive combinations of the fixed effects (Table 2). We confronted all models simoultaneosly by using model selection. Best model was selected based on Akaike Information Criterion (AIC) and models with ${\Delta}$AIC ${\leq}$ 2 were considered equally plausible. In addition, we used partial R${^2}$ (sensu Nakagawa) to quantify relative contribution of fixed (controled experiment variables) and random effects (species identities). 
+
+```{r mod.table}
+# models included in the analysis
+fixed = c(" ~ 1", 
+          "algorithm", "clump", "size", 
+          "clump + size", 
+          "clump + algorithm",
+          "size + algorithm", 
+          "clump + size + algorithm")
+mods <- data.frame(Models = paste0("m", sprintf("%02d", 0:7)), 
+                   Fixed = fixed)
+kable(mods, 
+      col.names = c("Models", "Fixed effects"), 
+      caption = "Table 2. Models used in the regression analysis")
+
+```
+
 
 # Results
 
@@ -171,6 +210,8 @@ ggplot(stats_rm, aes(x = algorithm, y = omission, fill = size)) +
 
 ## Understanding overall uncertainty
 
+Remarks: While TSS and AUC appear to have a positive relation to sample size, omission, pROC and uncertainty metrics were more robust to variation in sample size. Uncertainty metrics kept similar mean values among sample size, however variation is higher at low sample sizes than high sample sizes. 
+
 ### M1 = good/total
 
 ```{r m1}
@@ -203,6 +244,8 @@ ggplot(stats_rm, aes(x = algorithm, y = M3, fill = size)) +
   theme_classic()
 ```
 
+
+
 ## Correlation among all metrics
 
 ```{r cor}
@@ -212,7 +255,9 @@ correlation <- cor(metrics, use = 'complete.obs')
 ggcorrplot(correlation, 
            hc.order = TRUE, 
            type = "lower",
-           lab = TRUE)
+           lab = TRUE, 
+           legend.title = "Correlation", 
+           colors = c("#3B9AB2", "white", "#F21A00"))
   
 ```
 
@@ -246,7 +291,6 @@ AICtab(m01, m02, m03, m04, m05, m06, m07, m00,
 ```
 
 
-
 ```{r mod.M3}
 m01b <- lmer(M3 ~ clump + size + algorithm + (1|sp.gen), 
              data = stats_rm, family = "binomial")
@@ -275,13 +319,14 @@ AICtab(m01b, m02b, m03b, m04b, m05b, m06b, m07b, m00b,
 #### Bioclim C_100
 
 ```{r bio100, fig.width=3, fig.height=2.5}
+sp.list <- sp.list[-27]
 bio_100 <- read_sun(algo = "bioclim", 
                     cod = "C_100", 
                     type = "raw_mean")
 
-for (i in 1:length(bio_100)) {
+  for (i in 1:length(bio_100)) {
 sun_plot(bio_100[[i]], 
-         title = paste(sp.list))
+         title = sp.list[i])
 }
 ```
 
@@ -295,7 +340,7 @@ glm_100 <- read_sun(algo = "glm",
 
 for (i in 1:length(glm_100)) {
 sun_plot(glm_100[[i]], 
-         title = paste(sp.list))
+         title = sp.list[i])
 }
 ```
 
@@ -308,7 +353,7 @@ max_100 <- read_sun(algo = "maxent",
 
 for (i in 1:length(max_100)) {
 sun_plot(max_100[[i]], 
-         title = paste(sp.list))
+         title = sp.list[i])
 }
 ```
 
@@ -321,7 +366,7 @@ rf_100 <- read_sun(algo = "rf",
 
 for (i in 1:length(rf_100)) {
 sun_plot(rf_100[[i]], 
-         title = paste(sp.list))
+         title = sp.list[i])
 }
 ```
 
@@ -334,20 +379,20 @@ svm_100 <- read_sun(algo = "svmk",
 
 for (i in 1:length(svm_100)) {
 sun_plot(svm_100[[i]], 
-         title = paste(sp.list))
+         title = sp.list[i])
 }
 ```
 
 
 ```{r map1}
-algo <- "bioclim"
-dir <- "models_low"
-sp <- sp.trat[1]
-occ <- occ_data[[1]]
-
-sun_map(algo = algo, 
-        dir = dir, 
-        sp = sp,
-        occ = occ)
+# algo <- "bioclim"
+# dir <- "models_low"
+# sp <- sp.trat[1]
+# occ <- occ_data[[1]]
+# 
+# sun_map(algos = algo, 
+#         dir = dir, 
+#         sp = sp,
+#         occ = occ)
 ```
 

@@ -1,4 +1,4 @@
-sun_map <- function(algo, dir, sp, occ){
+sun_map <- function(algos, dir, sp, occ){
   # mod files
   mod_dir <- paste0(dir, "/", sp, "/present/final_models")
   s.file <- list.files(path = mod_dir,
