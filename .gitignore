@@ -1,3 +1,4 @@
+# general R
 .Rproj.user
 .Rhistory
 .RData
@@ -6,6 +7,7 @@
 # Rmd related
 *.html
 understanding_uncertainty_files/
+understanding_uncertainty_cache/
 
 # dirs in data/
 data/log/
@@ -17,4 +19,7 @@ results/uncertainty/
 
 # models dir
 models_low/
+
+# figures
+figs/
 

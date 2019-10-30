@@ -27,6 +27,7 @@ library(raster)
 library(rasterVis)
 library(sp)
 library(ggcorrplot)
+library(kableExtra)
 ## for model selection
 library(lme4)
 library(bbmle)
@@ -35,6 +36,8 @@ library(MuMIn)
 source("R/sun_map.R")
 source("R/sun_plot.R")
 source("R/read_sun.R")
+source("R/model_selection.R")
+
 ```
 
 
@@ -71,18 +74,21 @@ for (i in 1:length(spp_names)) {
 # reading csv files
 occ_data <- lapply(unlist(occ_files),
                    fread, sep = ',')
+
+occ_n <- sapply(occ_data, nrow)[stringr::str_detect(sp.trat, "_N_100")]
+sp.df$N <- occ_n 
 ```
 
 
 # Goal
 
-Our main goal is to quantify uncertainty in ecological niche models (ENMs). First, we will explore uncertainty in ecological niche models of epiphyte species from the Atlantic Forest using different algorithms and experimental scenarios (sample size, spatial autocorrelation and dimensionality). 
+Uncertainty is a neglected topic in ecological niche modeling. Our aim is to propose an alternative metric to quantify uncertainty in ecological niche models (ENMs). We explored sources of uncertainty in ecological niche models built from different experimental species. Biotic data was generated from empirical occurrence data of epiphyte species from the Atlantic Forest. We used experimental scenarios (sample size, spatial autocorrelation) to define biotic data and two environmental dimensionality scenarios (low and high dimensionality). We defined undertainty as the difference between maximum and minimum suitability estimatated from each partition. From this measure, we derived two metrics to evaluate where uncertainty comes from. We then used regressions to better understand sources of uncertainty.
 
 # Methods
 
 ## Biotic variables
 
-We are using occurrence data from epiphyte species from the Atlantic Forest published in the database by Ramos et al. (2019) *Ecology*. We selected only Angiosperm epiphytes endemic to the Atlantic Forest (according to Brazilian Flora 2020 -- the official Brazilian plant list). We are using occurrence data from 33 species belonging to Bromeliaceae (N=`r fam.n[1]`), Orchidaceae (N=`r fam.n[2]`), Cactaceae (N=`r fam.n[3]`), Gesneriaceae (N=`r fam.n[4]`) Melastomataceae (N=`r fam.n[5]`) and Piperaceae (N=`r fam.n[6]`) families (Table 1). 
+We are using occurrence data from epiphyte species from the Atlantic Forest published in the database by Ramos et al. (2019) *Ecology*. We selected only Angiosperm epiphytes endemic to the Atlantic Forest (according to Brazilian Flora 2020 -- the official Brazilian plant list). We are using occurrence data from 32 species belonging to Bromeliaceae (N=`r fam.n[1]`), Orchidaceae (N=`r fam.n[2]`), Cactaceae (N=`r fam.n[3]`), Gesneriaceae (N=`r fam.n[4]`) Melastomataceae (N=`r fam.n[5]`) and Piperaceae (N=`r fam.n[6]`) families (Table 1). 
 
 ```{r tab.sp}
 ### adicionar o N na tabela
@@ -90,7 +96,7 @@ sp.list <- sp.df$sp
 sp.df$sp <- gsub("_", " ", sp.df$sp)
 sp.df$sp <- paste0("*", sp.df$sp, "*")
 kable(sp.df[-27,],
-      col.names = c("Family", "Species"),
+      col.names = c("Family", "Species", "N of occurrences"),
       caption = "Table 1. List of species included in this report.")
 ```
 
@@ -101,13 +107,15 @@ We are using environmental variables from World Clim at 2.5$^{\circ}$ for South 
 
 ## Experimental design
 
-From 33 species we generated different experimental scenarios with different sample sizes (10, 20, 50 and 100% of all occurrence data points) and different patterns of spatial aggregation (clump and no clump). We used the `DistanceFilter` function from ENMGadgets R package to exclude spatial aggregated data at 0.11785113 (= 2 x pixel width). For each treatment N=`r length(sp.trat)`  we modeled ecological niche using the following algorithms: `r nome.algo`. So far, we only run models for the low dimensionality scenario. We separed data into four partitions and generated 1,000 pseudo absences around a buffer based on mean distance from points, cutting with a minimum distance for the exclusion buffer. 
+From 32 epiphyte species we generated different experimental scenarios with different sample sizes (10, 20, 50 and 100% of all occurrence data points) and different patterns of spatial aggregation (clump and no clump). We used the `DistanceFilter` function from ENMGadgets R package to exclude spatial aggregated data at a distance of 0.11785113 km (= 2 x pixel width). Therefore, for each species we generated samples of occurrence data with four sample sizes andtwo aggretation data, totalizing `r length(sp.trat)` treatments.  For each treatment we modeled ecological niche using the following algorithms: `r nome.algo`. So far, we only run models for the low dimensionality scenario. We separed data into four partitions and generated 1,000 pseudo absences around a buffer based on mean distance from points, cutting with a mean distance for the exclusion buffer. 
 
 ## Uncertainty metrics
-We defined two metrics to quantify uncertainty based on the suitability vs. uncertainty relationship. We classified the quality of suitability values based on the amount of uncertainty they held. Good quality suitability values were low suitability values (< first quantile) and high suitability values (> third quantile) with low uncertainty (< first quantile). Bad quality suitability values were low and high suitability values with high uncertainty. Points in between the first and third quantites were not considered in the metrics. Our uncertainty metrics were therefore calculated based on the proportion of good quality suitability values from total (M1), from bad points (M2) and from the classified points (M3). Given that M1 and M3 fitted to a binomial distribution, they were adopted for in the regression analysis. 
+We defined two metrics to quantify uncertainty based on the suitability vs. uncertainty relationship. We defined uncertainty as the difference between maximum and minimum suitability estimate per pixel. Then, we classified the quality of suitability values based on the amount of uncertainty they held. Good quality suitability values were low suitability values (< first quantile) and high suitability values (> third quantile) with low uncertainty (< first quantile, Figure 1). Bad quality suitability values were low and high suitability values with high uncertainty. Points in between the first and third quantites were not considered in the metrics. Our uncertainty metrics were therefore calculated based on the proportion of good quality suitability values from total (M1), from bad points (M2) and from the classified points (M3). Given that M1 and M3 fitted to a binomial distribution, they were adopted for in the regression analysis. 
 
 ${M1 = \frac{N_{good~points}}{N_{total}}}$
+
 ${M2 = \frac{N_{good~points}}{N_{bad~points}}}$
+
 ${M3 = \frac{N_{good~points}}{N_{good~points + bad~points}}}$
 
 ```{r m.example}
@@ -118,8 +126,7 @@ sun_plot(data = data.frame(a = rnorm(1000, mean = 0.5, sd = 0.15),
 
 ```
 
-
-Figure 1. Classification of suitability values based on its relation with uncertainty values. 
+Figure 1. Classification of suitability values based on its relation with uncertainty values. Dotted lines represent first and third quantile of x and y axis.
 
 ## Statistical analysis
 
@@ -263,53 +270,60 @@ ggcorrplot(correlation,
 
 ## Variance partitioning of uncertainty metrics with GLMMs
 
-```{r mod.M1}
+```{r run.models}
 stats_rm$sp.gen <- paste(stats_rm$genus, stats_rm$epithet, sep = "_")
-# f <- M1 ~ clump*size*algorithm + (1|sp.gen)
-# m <- buildmer(f,data=stats_rm,direction='order',control=lmerControl(optimizer='bobyqa'))
+stats_rm$good_bad <- stats_rm$good + stats_rm$bad 
 
-m01 <- lmer(M1 ~ clump + size + algorithm + (1|sp.gen), 
-             data = stats_rm, family = "binomial")
-m02 <- lmer(M1 ~ clump + size + (1|sp.gen),
-             data = stats_rm, family = "binomial")
-m03 <- lmer(M1 ~ clump + algorithm + (1|sp.gen), 
-             data = stats_rm, family = "binomial")
-m04 <- lmer(M1 ~ size + algorithm + (1|sp.gen), 
-             data = stats_rm, family = "binomial")
-m05 <- lmer(M1 ~ size + (1|sp.gen), 
-             data = stats_rm, family = "binomial")
-m06 <- lmer(M1 ~ algorithm + (1|sp.gen), 
-             data = stats_rm, family = "binomial")
-m07 <- lmer(M1 ~ clump + (1|sp.gen), 
-             data = stats_rm, family = "binomial")
-m00 <- lmer(M1 ~ 1 + (1|sp.gen), 
-             data = stats_rm, family = "binomial") 
-AICtab(m01, m02, m03, m04, m05, m06, m07, m00, 
-       base = TRUE, weights = TRUE)
+# building models w/ function
+mod_m1 <- mod_sel(data = stats_rm, 
+                  m = "M1")
 
+mod_m3 <- mod_sel(data = stats_rm, 
+                  m = "M3")
+
+# showing predictors
+m1_preds <- broom::tidy(mod_m1$mods$m01, conf.int = TRUE, exponentiate = TRUE) %>%
+    mutate(Model = "M1")
+           # estimate = exp(estimate), 
+           # conf.low = exp(conf.low), conf.high = exp(conf.high))
+m3_preds <- broom::tidy(mod_m3$mods$m01, conf.int = TRUE, exponentiate = TRUE) %>%
+     mutate(Model = "M3")
+    #        estimate = exp(estimate), 
+    #        conf.low = exp(conf.low), conf.high = exp(conf.high))
+
+ors <- bind_rows(m1_preds[1:9,], m3_preds[1:9,])
 
 ```
 
+```{r aic.tab}
+aic_tab <- bind_rows(mod_m1$aic_tab, mod_m3$aic_tab)
+Metric <- rep(c("M1", "M3"), each = 8)
+kaic <- kable(cbind(Metric, aic_tab))
+collapse_rows(kaic)
+```
 
-```{r mod.M3}
-m01b <- lmer(M3 ~ clump + size + algorithm + (1|sp.gen), 
-             data = stats_rm, family = "binomial")
-m02b <- lmer(M3 ~ clump + size + (1|sp.gen), 
-             data = stats_rm, family = "binomial")
-m03b <- lmer(M3 ~ clump + algorithm + (1|sp.gen), 
-             data = stats_rm, family = "binomial")
-m04b <- lmer(M3 ~ size + algorithm + (1|sp.gen),
-             data = stats_rm, family = "binomial")
-m05b <- lmer(M3 ~ size + (1|sp.gen), 
-             data = stats_rm, family = "binomial")
-m06b <- lmer(M3 ~ algorithm + (1|sp.gen), 
-             data = stats_rm, family = "binomial")
-m07b <- lmer(M3 ~ clump + (1|sp.gen), 
-             data = stats_rm, family = "binomial")
-m00b <- lmer(M3 ~ 1 + (1|sp.gen), 
-             data = stats_rm, family = "binomial") 
-AICtab(m01b, m02b, m03b, m04b, m05b, m06b, m07b, m00b, 
-       base = TRUE, weights = TRUE)
+
+
+```{r odds.ratio}
+#dodger <- position_dodge(width = 0.3)
+# Elements like pointrange and position_dodge only work when the outcome
+#   is mapped to y, need to go through with OR set as y then flip at the
+#   end
+por <- ggplot(ors, aes(y = estimate, x = term, colour = Model)) +
+  geom_point(shape = 1) +
+  geom_errorbar(aes(ymin = conf.low, ymax = conf.high),
+                  #position = dodger,
+                  width = .1) +
+  geom_hline(yintercept = 1.0, linetype = "dotted", size = 1) +
+  scale_colour_manual(values = c("grey20", "grey60")) +
+  #scale_y_log10() +
+  labs(y = "Odds ratio", x = "Effect", colour = "Metric") +
+  coord_flip() +
+  theme_bw() 
+  
+
+por
+
 ```
 
 ## Suitability vs. uncertainty plots
