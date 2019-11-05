@@ -37,6 +37,7 @@ sun_plot <- function(data, title){
     geom_vline(xintercept = q.suit75, linetype = "dotted") +
     geom_hline(yintercept = q.un25, linetype = "dotted") +
     geom_hline(yintercept = q.un75, linetype = "dotted") +
+    labs(color = "Quality") +
     theme_classic()
   #theme(plot.title = element_text(size=7))
 

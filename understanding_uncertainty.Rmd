@@ -270,7 +270,7 @@ ggcorrplot(correlation,
 
 ## Variance partitioning of uncertainty metrics with GLMMs
 
-```{r run.models}
+```{r run.models, eval = FALSE}
 stats_rm$sp.gen <- paste(stats_rm$genus, stats_rm$epithet, sep = "_")
 stats_rm$good_bad <- stats_rm$good + stats_rm$bad 
 
@@ -295,7 +295,7 @@ ors <- bind_rows(m1_preds[1:9,], m3_preds[1:9,])
 
 ```
 
-```{r aic.tab}
+```{r aic.tab, eval = FALSE}
 aic_tab <- bind_rows(mod_m1$aic_tab, mod_m3$aic_tab)
 Metric <- rep(c("M1", "M3"), each = 8)
 kaic <- kable(cbind(Metric, aic_tab))
@@ -304,7 +304,7 @@ collapse_rows(kaic)
 
 
 
-```{r odds.ratio}
+```{r odds.ratio, eval = FALSE}
 #dodger <- position_dodge(width = 0.3)
 # Elements like pointrange and position_dodge only work when the outcome
 #   is mapped to y, need to go through with OR set as y then flip at the
