@@ -224,6 +224,7 @@ Remarks: While TSS and AUC appear to have a positive relation to sample size, om
 ```{r m1}
 ggplot(stats_rm, aes(x = algorithm, y = M1, fill = size)) +
   geom_boxplot() +
+  labs(y = "Un_total") +
   facet_grid(clump ~ .) +
   scale_fill_manual(values = cores) +
   theme_classic()
@@ -247,6 +248,7 @@ ggplot(stats_rm, aes(x = algorithm, y = M2, fill = size)) +
 ggplot(stats_rm, aes(x = algorithm, y = M3, fill = size)) +
   geom_boxplot() +
   facet_grid(clump ~ .) +
+  labs(y = "Un_parcial") +
   scale_fill_manual(values = cores) +
   theme_classic()
 ```
