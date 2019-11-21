@@ -2,7 +2,6 @@
 
 # loading packages
 library("ggplot2")
-library("ggpubr")
 # loading functions
 source("R/sun_plot.R")
 source('R/read_sun.R')
@@ -100,42 +99,20 @@ head(df.f2)
 file <- list()
 
 for (i in 1:nrow(df.f2)) {
-file[[i]] <- read_sun(algo = df.f2[,'algos'][i],
-                 cod = df.f2[,'trat'][i],
-                 type = "raw_mean")
+  file[[i]] <- read_sun(algo = df.f2[,'algos'][i],
+                        cod = df.f2[,'trat'][i],
+                        type = "raw_mean")
 }
 
 file.f2 <- list()
 for (i in 1:length(count)) {
-file.f2[[i]] <- file[[i]][count[i]]
+  file.f2[[i]] <- file[[i]][count[i]]
 }
 
 file.f2[[1]]
 
-f2a <- sun_plot(as.data.frame(file.f2[[1]]), title = "")
-f2b <- sun_plot(as.data.frame(file.f2[[2]]), title = "")
-f2c <- sun_plot(as.data.frame(file.f2[[3]]), title = "")
-f2d <- sun_plot(as.data.frame(file.f2[[4]]), title = "")
-f2e <- sun_plot(as.data.frame(file.f2[[5]]), title = "")
-f2f <- sun_plot(as.data.frame(file.f2[[6]]), title = "")
+sun_plot(as.data.frame(file.f2[[1]]), title = "")
 
+f2a
 
-f2[[1]]
-
-f2.all <- ggarrange(f2a + labs(x = "", y = "") + ggtitle("A"),
-                    f2b + labs(x = "", y = "") + ggtitle("B"),
-                    f2c + labs(x = "", y = "") + ggtitle("C"),
-                    f2d + labs(x = "", y = "") + ggtitle("D"),
-                    f2e + labs(x = "", y = "") + ggtitle("E"),
-                    f2f + labs(x = "", y = "") + ggtitle("F"),
-                    common.legend = TRUE)
-
-png("figs/figure02.png", res = 300, height = 1800, width = 2400)
-annotate_figure(f2.all,
-                left = "Uncertainty",
-                bottom = "Suitability")
-dev.off()
-
-
-
-
+sun_plot
