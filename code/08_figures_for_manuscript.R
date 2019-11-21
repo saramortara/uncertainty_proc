@@ -40,10 +40,13 @@ sun2 <- sun +
   annotate("text", x = 0.18, y = 0.8,
            label = "Q4", size = 3.5, color = cores[2], fontface = 2) +
   annotate("text", x = 0.85, y = 0.8,
-           label = "Q3", size = 3.5, color = cores[2], fontface = 2)
+           label = "Q3", size = 3.5, color = cores[2], fontface = 2) +
+  theme(legend.position = "top")
 
 
-png("figs/figure01.png", res = 300, height = 1200, width = 1500)
+sun2
+
+png("figs/figure01.png", res = 300, height = 1200, width = 1200)
 sun2
 dev.off()
 
@@ -148,14 +151,11 @@ pal <-  wesanderson::wes_palette("Zissou1", n.col,
                     type = "continuous")
 
 # algorithm names
-algo_names <- c("Bioclim", "GLM", "Maxent", "Random Forest", "SVM")
-
-
-head(stats_rm)
+algo_names <- c("Bioclim", "GLM", "Maxent", "RF", "SVM")
 
 m1 <- ggplot(stats_rm, aes(x = algorithm, y = M1, fill = size)) +
   geom_boxplot() +
-  labs(y = "Un_total", x = "Algorithm") +
+  labs(y = expression("Un"["total"]), x = "Algorithm") +
   #facet_grid(clump ~ .) +
   scale_fill_manual(values = pal) +
   scale_x_discrete(labels = algo_names) +
@@ -164,7 +164,7 @@ m1 <- ggplot(stats_rm, aes(x = algorithm, y = M1, fill = size)) +
 m1
 
 m2 <- m1 %+% aes(y = M3) +
-  labs(y = "Un_partial")
+  labs(y = expression("Un"["class"]))
 
 m2
 
@@ -172,6 +172,35 @@ f3 <- ggarrange(m1 + ggtitle("A"),
                 m2 + ggtitle("B"),
                 common.legend = TRUE)
 
+f3
+
 png("figs/figure03.png", res = 300, height = 1200, width = 2400)
 f3
+dev.off()
+
+#### Figure 4 Relationship of Un metrics with traditional metrics ####
+names(stats_rm)
+
+f4a <- ggplot(stats_rm, aes(x = TSS, y = M1)) +
+  geom_point(alpha = 0.5) +
+  #scale_colour_grey() +
+  theme_classic()
+
+f4a
+
+f4b <- f4a %+% aes(x = AUC)
+f4c <- f4a %+% aes(x = pROC)
+f4d <- f4a %+% aes(y = M3)
+f4e <- f4a %+% aes(x = TSS, y = M3)
+f4f <- f4a %+% aes(x = pROC, y = M3)
+
+f4 <- ggarrange(f4a + ggtitle("A") + xlab("") + ylab(expression("Un"["total"])),
+                f4b + ggtitle("B") + xlab("") + ylab(""),
+                f4c + ggtitle("C") + xlab("") + ylab(""),
+                f4d + ggtitle("D") + ylab(expression("Un"["class"])),
+                f4e + ggtitle("E") + ylab(""),
+                f4f + ggtitle("F") + ylab(""))
+
+png("figs/figure04.png", res = 300, height = 1800, width = 2400)
+f4
 dev.off()
