@@ -153,6 +153,14 @@ pal <-  wesanderson::wes_palette("Zissou1", n.col,
 # algorithm names
 algo_names <- c("Bioclim", "GLM", "Maxent", "RF", "SVM")
 
+# m0 <- ggplot(stats_rm, aes(x = size, y = M1, fill = algorithm)) +
+#   geom_boxplot() +
+#   labs(y = expression("Un"["total"]), x = "Algorithm") +
+#   #facet_grid(clump ~ .) +
+#   scale_fill_manual(values = pal) +
+#   #scale_x_discrete(labels = algo_names) +
+#   theme_classic()
+
 m1 <- ggplot(stats_rm, aes(x = algorithm, y = M1, fill = size)) +
   geom_boxplot() +
   labs(y = expression("Un"["total"]), x = "Algorithm") +
@@ -191,7 +199,7 @@ f4a
 f4b <- f4a %+% aes(x = AUC)
 f4c <- f4a %+% aes(x = pROC)
 f4d <- f4a %+% aes(y = M3)
-f4e <- f4a %+% aes(x = TSS, y = M3)
+f4e <- f4a %+% aes(x = AUC, y = M3)
 f4f <- f4a %+% aes(x = pROC, y = M3)
 
 f4 <- ggarrange(f4a + ggtitle("A") + xlab("") + ylab(expression("Un"["total"])),
@@ -200,6 +208,8 @@ f4 <- ggarrange(f4a + ggtitle("A") + xlab("") + ylab(expression("Un"["total"])),
                 f4d + ggtitle("D") + ylab(expression("Un"["class"])),
                 f4e + ggtitle("E") + ylab(""),
                 f4f + ggtitle("F") + ylab(""))
+
+f4
 
 png("figs/figure04.png", res = 300, height = 1800, width = 2400)
 f4
