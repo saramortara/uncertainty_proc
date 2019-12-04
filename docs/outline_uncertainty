@@ -1,0 +1,46 @@
+# My initial note
+Given that uncertainty is a neglected topic in ecological niche modeling our aim is to propose an alternative metric to quantify uncertainty in ENMs. We explored sources of uncertainty in ecological niche models built from different experimental species. Biotic data was generated from empirical occurrence data of epiphyte species from the Brazilian Atlantic Forest. We used experimental scenarios of different sample size to generate biotic data. ENMs We defined uncertainty as the difference between the maximum and minimum suitability estimated from each partition. From this measure, we derived two metrics to evaluate where uncertainty comes from. We then explored variation of metrics between algorithms and sample size, as well as the relationship among our metrics and traditional evaluation metrics in ENMs.
+
+# Introduction
+
+What is your research question? (4)
+Our research question is how can one measure uncertainty in ENMs and how uncertainty is related to performance metrics. We defined uncertainty as the difference between the maximum and minimum suitability estimated from each partition. From this measure, we derived two metrics to evaluate where uncertainty comes from. We then explored variation of metrics between algorithms and sample size, as well as the relationship among our metrics and traditional evaluation metrics in ENMs.
+  
+What led you to come up with this question? (2)
+The common procedure when building ecological niche models(ENMs) is to partitionate the data of species records (either by bootstrap or crossvalidation, among other methods) into different subsets. Next, an ENM algorithm is fitted for each partition and a final model is generated for each algorithm using mean suitability values per pixel across each partition. Model is then evaluated using a performance metric (AUC, pROC, TSS) and, depending on the use, one can select one best model or build a consensus model among algorithms using different methods. During this process, variation among partitions within an algorithm has been largelly overlooked and model evaluation is based only on performance metrics.
+
+What is the knowledge gap? (3)
+Although some authors argue that mapping species distributions should be done rigourlouly which includes the measurement of uncertainty (Rocchini et al 2011), in the field of ENMs uncertainty has been addressed in the context of different algorithms (Pearson et al 2006) or predictions through time (Araujo et al 2005, Buisson et al 2010, Swanson et al 2012). Given that occurrence data is partitionated into subsambles and the data itself is a source of uncertainty in ENM (Rocchini et al 2011), this study investigates sources of uncertainty in ENMs.
+  
+What is the relevance of your study's topic? (1)
+Variance is intrinsic to any biological process and has intrigued ecologists and biogeographers for decades. There is no measurement taken or model built that is reported without an estimate of the amount of variance in the data. Moreover, high variance within any data is associated with high uncertanty. This is true for several fields in ecology, however, in ecological niche modelling understanding uncertainty is a neglected topic.     
+
+# Material and Methods
+
+In general terms, how did you do your study? ok
+
+# Results
+
+What does your figures show? ok 
+
+# Discussion
+
+What is your main finding?
+
+Our study shows that our uncertainty metrics reflect variability among treatments. Each sample size, species and algorithm presented a different pattern of the relationship between suitability and uncertainty. In addition to this, variation in uncertainty metrics was higher among algorithms than among sample size. Un_class was better in separating good and bad models according to performance metrics such as TSS and AUC. We show that it is possible to calculate uncertainty among different partitions of the same algorithm and we provide functions connecting to modleR package outputs to perform the calculation of the metrics and to make the uncertainty vs suitability plots. 
+
+How do your results relate to the literature? (Posicionamento)
+It is already known that different algorithms produce different estimates of suitability values for the same biotic and abiotic data. Our study reinforces that variability among algorithms is still a major source of uncertainty. Moreover, our uncertainty metrics were not sensitive to variation in sample size, which can indicate the potential of using our measurement based on range to measure uncertainty for small samples.
+
+What is special about your study?
+
+
+What is the main contribution for the field?
+
+
+What are the limitations of your study?
+
+
+What are the next steps? 
+
+
